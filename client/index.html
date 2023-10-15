@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Hero Guy: Secret Mission</title>
+  <link rel="icon" type="image/x-icon" href="/images/HeroGuyLogo.svg">
+  <link href="style.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+  <div id="total">
+    <div id="container">
+      <div id="logo"><p id="name-display"></p></div>
+      <div id="entry-form">
+        <label>
+          <p>Name:</p>
+          <input type="text" id="name-input" maxlength="10"/>
+        </label>
+        <label>
+          <p>Game Id:</p>
+          <input type="text" id="game-id-input" maxlength="4"/>
+        </label>
+        <button id="join-button">Join</button>
+        <p id="invalid-code"></p>
+      </div>
+      <div id = "waiting-room">
+        <h1 id="welcome"></h1>
+        <button id="start-game">Start Game</button>
+      </div>
+    </div>
+    <div id = "game-space">
+      <p id="role-name"></p>
+      <div id="hero-phone">
+        <div id="home">
+          <div id = "apps">
+            <div class="app" id="chat"></div>
+          </div>
+          <div id="chat-notifications">You have unread messages.</div>
+        </div>
+        <div id="chat-app">
+          <div id="contacts">
+            <div id="chat-title">Hero Chat</div>
+            <div id="contacts-list">
+
+            </div>
+          </div>
+          <div id="chat-screen">
+          </div>
+        </div>
+        <div id="home-button">
+        </div>
+      </div>
+      <div id="players">
+        <p id="others">Other players:</p>
+        <div id="player-containers">
+  
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js" integrity="sha512-Xm9qbB6Pu06k3PUwPj785dyTl6oHxgsv9nHp7ej7nCpAqGZT3OZpsELuCYX05DdonFpTlBpXMOxjavIAIUwr0w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>

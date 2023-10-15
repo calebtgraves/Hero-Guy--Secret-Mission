@@ -1,0 +1,339 @@
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron&display=swap');
+@import url("https://use.typekit.net/djm2yqw.css");
+*{
+  padding:0;
+  margin:0;
+  box-sizing: border-box;
+}
+html, body {
+  height: 100%;
+  width: 100%;
+}
+#container{
+  display:flex;
+  align-items: center;
+  justify-content:center;
+  height:100%;
+  flex-direction:column;
+  background-color:#1b75bb;
+}
+#entry-form{
+  display:flex;
+  flex-direction:column;
+  width:30%;
+  min-width:200px;
+}
+label{
+  display:flex;
+  flex-direction:column;
+  margin:5px 0;
+}
+label p{
+  color:#ffffff;
+  text-shadow: 2px 2px 0px black;
+  font-size:3em;
+  line-height:0;
+  font-family:'Bangers';
+  letter-spacing: 2pt;
+  margin-top:30px;
+  margin-bottom:30px;
+}
+#name-input, #game-id-input{
+  height:60px;
+  font-size:2em;
+  font-family:'ccmeanwhile','Comic Sans MS';
+  font-weight:400;
+  padding:10px;
+  text-align:center;
+  text-transform:uppercase;
+}
+#join-button,#start-game{
+  padding:10px;
+  font-family:'Bangers';
+  font-size:2em;
+  margin-top:15px;
+}
+#start-game{
+  display:none;
+  max-width:200px;
+  width:75%;
+}
+#waiting-room{
+  display:flex;
+  flex-direction:column;
+  align-items: center;
+}
+#invalid-code{
+  font-family:'Bangers';
+  text-align: center;
+  font-size:2em;
+  color:rgb(210, 18, 18);
+  margin-top:10px;
+  background-color: #ffffff;
+}
+#logo{
+  width:100%;
+  height:30%;
+  background-image:url('/images/HeroGuyLogoWhite.svg');
+  background-repeat:no-repeat;
+  background-size:contain;
+  background-position:center;
+  display:flex;
+  align-items: center;
+  justify-content: center;
+}
+#welcome{
+  font-family:'Bangers';
+  text-shadow:2px 2px 0px black;
+  color:white;
+  text-align:center;
+  padding:20px;
+  font-size:3em;
+  letter-spacing: 2pt;
+}
+#name-display{
+  font-family:'Bangers';
+  font-size:1.5em;
+  text-align: center;
+  color:#ffffff;
+}
+#game-space{
+  display:none;
+  flex-direction:column;
+  align-items: center;
+  height:100%;
+}
+#players{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+}
+#others{
+  padding:10px;
+  margin-top:10px;
+  align-self:start;
+  border:2px solid black;
+  box-shadow: 4px 4px 0px black;
+  font-family:'ccmeanwhile';
+  margin-left:10px;
+}
+#player-containers{
+  width:100%;
+  display:flex;
+  overflow-x:auto;
+  padding-bottom:10px;
+}
+#role-name{
+  padding:10px;
+  font-size:1.3em;
+  font-family:'ccmeanwhile';
+  border:2px black solid;
+  box-shadow: 4px 4px 0px black;
+  background-color:gold;
+  margin-top:10px;
+}
+.player-container{
+  display:flex;
+  flex-direction:column;
+  align-items: center;
+  padding:5px;
+  box-shadow:4px 4px 0px black;
+  border:2px solid black;
+  margin:10px;
+  width:100px;
+  min-width:100px;
+  font-family:'ccmeanwhile';
+  background-color: #ffffff;
+  font-size:.7em;
+}
+.guy-base{
+  height:55px;
+  width:55px;
+  background-image:url('images/Guy_Base.svg');
+}
+.accessory{
+  height:100%;
+  width:100%;
+}
+.cape{
+  background-image:url('images/Guy_Cape.svg');
+}
+.mask{
+  background-image:url('images/Guy_Mask.svg');
+}
+.mustache{
+  background-image:url('images/Guy_Mustache.svg');
+}
+.guy-base,.accessory{
+  background-size:contain;
+  background-position:center;
+  background-repeat:no-repeat;
+}
+#total{
+  height:100%;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+}
+#hero-phone{
+  margin-top:10px;
+  height:100%;
+  width:100%;
+  max-width:400px;
+  border-radius:5px;
+  border: 2px solid black;
+  display:flex;
+  flex-direction:column;
+}
+#home-button{
+  height:60px;
+  width:100%;
+  background-image:url('images/HomeButton.svg');
+  background-size:10%;
+  background-position:50%;
+  background-repeat:no-repeat;
+  background-color:black;
+  align-self:end;
+}
+#home{
+  height:100%;
+  display:flex;
+  flex-direction:column;
+}
+#chat-notifications{
+  display:none;
+  padding:10px;
+  font-family:'ccmeanwhile';
+  font-size:1.3em;
+  background-color:gold;
+  border:2px solid black;
+  box-shadow:4px 4px 0px black;
+  margin:10px;
+}
+#apps{
+  height:100%;
+  display:flex;
+  flex-wrap:wrap;
+  padding:10px;
+}
+.app{
+  height:70px;
+  width:70px;
+  border-radius:10px;
+  border:2px solid black;
+  box-shadow: 4px 4px 0px;
+  margin:10px;
+}
+#chat{
+  background-image:url('images/HeroChat.svg')
+}
+#chat-app{
+  display:none;
+  height:100%;
+  width:100%;
+  flex-direction: column;
+}
+#contacts{
+  height:100%;
+  width:100%;
+  flex-direction:column;
+}
+#contacts-list{
+  display:flex;
+  height:100%;
+  flex-grow:1;
+  flex-basis:0;
+  overflow-y:auto;
+  flex-direction:column;
+}
+.contact{
+  font-family:'ccmeanwhile';
+  font-size:1.5em;
+  text-align:center;
+  padding:10px;
+  border:1px solid grey;
+}
+.contact:active{
+  background-color:grey;
+}
+.back{
+  background-color:lightgrey;
+  background-image:url('images/BackButton.svg');
+  width:100%;
+  height:60px;
+  background-size:10%;
+  background-repeat:no-repeat;
+  background-position-y:center;
+  font-family:'ccmeanwhile';
+  font-size:1.2em;
+  display:flex;
+  align-items: center;
+  justify-content:center;
+}
+#chat-title{
+  background-color:#1b75bb;
+  color:white;
+  width:100%;
+  height:40px;
+  font-family:'ccmeanwhile';
+  font-size:1.2em;
+  display:flex;
+  align-items: center;
+  justify-content:center;
+}
+#chat-screen{
+  display:none;
+  height:100%;
+  width:100%;
+  flex-direction:column;
+}
+.conversation{
+  display:none;
+  flex-direction:column;
+  height:100%;
+}
+.message-area{
+  display:flex;
+  flex-direction:column-reverse;
+  height:250px;
+  overflow-y:auto;
+  flex-grow:50;
+  flex-basis:0;
+}
+.typing{
+  flex-grow:1;
+  padding:10px;
+  display:flex;
+}
+.message-input{
+  flex:3;
+  font-family:'ccmeanwhile';
+  font-size:1em;
+  padding:10px;
+  width:100%;
+}
+.send{
+  flex:1;
+  font-family:'ccmeanwhile';
+  font-size:1em;
+  padding:10px;
+}
+.message{
+  font-family:'ccmeanwhile';
+  background-color:lightgrey;
+  font-size:1em;
+  padding:5px;
+  border:solid black 2px;
+  box-shadow:4px 4px 0px black;
+  align-self:flex-start;
+  margin:5px;
+  max-width:80%;
+  overflow-wrap:break-word;
+}
+.from-me{
+  align-self:flex-end;
+  background-color: gold;
+}
+.new-messages{
+  background-color:lightsalmon;
+}
