@@ -50,7 +50,7 @@ html, body{
   border:2px solid black;
   padding:10px;
   margin-top:10px;
-  background-color:#98bbde;
+  background-color:gold;
   box-shadow:4px 4px 0px black;
 }
 .player-container{
@@ -128,14 +128,17 @@ html, body{
   display:flex;
   padding:10px;
   flex-direction:column;
-  justify-content:end;
   overflow-y:hidden;
+  justify-content: center;
+  align-items: center;
 }
 #current-events div{
   border:2px solid black;
   box-shadow:4px 4px 0px black;
   padding:10px;
   font-family:'ccmeanwhile';
-  font-size:1.3em;
+  font-size:1.1em;
   width:100%;
+  max-width:550px;
+  height:90%;
 }

@@ -16,11 +16,11 @@
       <div id="entry-form">
         <label>
           <p>Name:</p>
-          <input type="text" id="name-input" maxlength="10"/>
+          <input type="text" id="name-input" maxlength="10" autocomplete="off"/>
         </label>
         <label>
           <p>Game Id:</p>
-          <input type="text" id="game-id-input" maxlength="4"/>
+          <input type="text" id="game-id-input" maxlength="4" autocomplete="off"/>
         </label>
         <button id="join-button">Join</button>
         <p id="invalid-code"></p>
@@ -31,9 +31,37 @@
       </div>
     </div>
     <div id = "game-space">
-      <p id="role-name"></p>
       <div id="hero-phone">
+        <div id="jail">
+          <p>You are in jail. You can not do anything while in jail.</p>
+        </div>
         <div id="home">
+          <div id="action-section">
+            <div id="buildings">
+              <p>Go to:</p>
+              <button id="lab-button">Laboratory of Bizzare Research</button>
+              <button id="manor-button">Mystic Manor</button>
+              <button id="jewelry-button">Jewelry Store</button>
+              <button id="tech-button">Tech Tower</button>
+              <button id="news-button">The World News</button>
+              <button id="fun-button">Abandoned Funhouse</button>
+              <button id="grocery-button">Grocery Mart</button>
+            </div>
+            <div id="waiting">
+              <p>Waiting... Keep an eye on the main screen!</p>
+            </div>
+            <div id="actions">
+              <p id="your-building"></p>
+              <p id="people-seen">You don't see anyone else.</p>
+              <div id="players-nearby">
+
+              </div>
+              <p id="actions-title">Actions:</p>
+            </div>
+            <div id="vote"></div>
+            <div id="vote-results"></div>
+          </div>
+          <p id="apps-title">Apps:</p>
           <div id = "apps">
             <div class="app" id="chat"></div>
           </div>

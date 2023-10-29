@@ -17,22 +17,31 @@ const entryForm = document.getElementById('entry-form');
 const logo = document.getElementById('logo');
 const container = document.getElementById('container');
 const nameDisplay = document.getElementById('name-display');
-const gameSpace = document.getElementById('game-space')
+const gameSpace = document.getElementById('game-space');
 
 let me = {}
 let playerNames = []
 joinButton.onclick = () => {
   //tell the server the client is trying to connect to a game, and send the game id and username that was typed in.
-  socket.emit('join', [gameId.value.toUpperCase(),username.value])
-  //clear the gameId field, in case the game id was invalid.
-  gameId.value = ""
+  if(username.value){
+    socket.emit('join', [gameId.value.toUpperCase(),username.value])
+  }
 }
-
 //Hero Phone
 const home = document.getElementById('home');
 const chatApp = document.getElementById('chat-app');
+const jail = document.getElementById('jail');
 const homeButton = document.getElementById('home-button');
-const apps = [home,chatApp]
+const apps = [home,chatApp,jail];
+const actions = document.getElementById('actions');
+const buildingSection = document.getElementById('buildings');
+const waiting = document.getElementById('waiting');
+const vote = document.getElementById('vote');
+const voteResults = document.getElementById('vote-results');
+const actionSection = document.getElementById('action-section');
+const widgets = [vote,voteResults,buildingSection,waiting,actions];
+const playersNearby = document.getElementById('players-nearby');
+let playersAtBuildings = [];
 
 //This function handles the switching of the phone screen, whether in an app or from an app to the home screen.
 function switchScreen(scope,target){
@@ -41,13 +50,11 @@ function switchScreen(scope,target){
   })
   target.style.display = 'flex';
 }
-homeButton.onclick = ()=>{
-  switchScreen(apps,home);
-}
 //home screen
-const chatIcon = document.getElementById("chat");
-chatIcon.onclick = ()=>{
+const chatAppIcon = document.getElementById("chat");
+chatAppIcon.onclick = ()=>{
   switchScreen(apps,chatApp);
+  checkUnreadMessages();
 }
 //chat app
 const contacts = document.getElementById('contacts');
@@ -56,18 +63,63 @@ const contactsList = document.getElementById('contacts-list');
 const chatTitle = document.getElementById('chat-title');
 const chatAppScreens = [contacts,chatScreen];
 let chatNotifications = document.getElementById('chat-notifications');
-let conversations = []
-let unreadConvos = []
+let conversations = [];
+let messageAreas = [];
+let unreadMessages = 0;
 
 function openChat(recipient){
-  switchScreen(chatAppScreens,chatScreen)
-  switchScreen(conversations,recipient)
+  switchScreen(chatAppScreens,chatScreen);
+  switchScreen(conversations,recipient);
+  switchScreen(messageAreas,recipient.childNodes[1])
+}
+
+let currentBuilding = ""
+
+function getCurrentBuilding(){
+  return currentBuilding
+}
+
+function switchBuilding(building,conn){
+  currentBuilding = building;
+  conn.send(['changeBuilding',[currentBuilding,me]]);
+  switchScreen(widgets,waiting);
+}
+
+function checkUnreadMessages(){
+  let unreadConvos = [];
+  contactsList.childNodes.forEach((child)=>{
+    if(child.classList && child.classList.contains('new-messages')){
+      chatAppIcon.classList.add('chat-notification');
+      if(child.innerText){
+        unreadConvos.push(child.innerText);
+      }
+    }
+  })
+  unreadConvos.forEach((convo)=>{
+    area = document.getElementById(`${convo}-messages`);
+    if(area.style.display == "flex" && chatApp.style.display == "flex" && contacts.style.display != 'flex'){
+      contact = document.getElementById(`${convo}-contact`);
+      contact.classList.remove('new-messages');
+    }
+  })
+  if(unreadConvos.length == 0 && chatAppIcon.classList.contains('chat-notification')){
+    chatAppIcon.classList.remove('chat-notification');
+  }
+}
+homeButton.onclick = ()=>{
+  switchScreen(apps,home);
+  checkUnreadMessages()
+  switchScreen(chatAppScreens,contacts);
 }
 
 
-
-
-
+const labButton = document.getElementById('lab-button');
+const manorButton = document.getElementById('manor-button');
+const jewelryButton = document.getElementById('jewelry-button');
+const techButton = document.getElementById('tech-button');
+const newsButton = document.getElementById('news-button');
+const funButton = document.getElementById('fun-button');
+const groceryButton = document.getElementById('grocery-button');
 
 //what to do when the client joins a game. info is an array that contains the host's peer id and the username typed in by the user.
 socket.on('join',info => {
@@ -102,7 +154,7 @@ socket.on('join',info => {
           container.style.justifyContent = 'start';
           logo.style.backgroundPositionX = '5%';
           logo.style.height = '50px';
-          logo.style.marginTop = '10px';
+          logo.style.marginTop = '7px';
           container.style.height = '70px';
           const watingRoom = document.getElementById('waiting-room');
           watingRoom.style.display = "none";
@@ -116,6 +168,7 @@ socket.on('join',info => {
             if(player != me['name']){
               playerNames.push(player)
               const playerContainer = document.createElement('div');
+              playerContainer.setAttribute('id',`${player}-container`);
               playerContainer.classList.add('player-container');
               const guyBase = document.createElement('div');
               guyBase.classList.add('guy-base');
@@ -129,7 +182,7 @@ socket.on('join',info => {
               mask.appendChild(stache);
               cape.appendChild(mask)
               guyBase.appendChild(cape)
-              playerName.innerText = data[1][player]['name']
+              playerName.innerText = data[1][player]['name'];
               if (data[1][player]['cape']){
                   cape.classList.add('cape');
               }
@@ -154,8 +207,10 @@ socket.on('join',info => {
               newContact.onclick = ()=>{
                 if(newContact.classList.contains('new-messages')){
                   newContact.classList.remove('new-messages');
+                  // unreadMessages -= 1;
+                  checkUnreadMessages();
                 }
-                openChat(newConvo)
+                openChat(newConvo);
               }
               let chatBack = document.createElement('div');
               chatBack.classList.add('back');
@@ -163,7 +218,12 @@ socket.on('join',info => {
               chatBack.onclick = ()=>{
                 if(newContact.classList.contains('new-messages')){
                   newContact.classList.remove('new-messages');
+                  // unreadMessages -= 1;
+                  checkUnreadMessages()
                 }
+                messageAreas.forEach((area)=>{
+                  area.style.display = 'none';
+                })
                 switchScreen(chatAppScreens,contacts)
               }
               //create the chat elements with all other players
@@ -195,30 +255,78 @@ socket.on('join',info => {
                 conn.send(['sendingMessage',messageInfo])
               }
               messageArea.setAttribute('id',`${player}-messages`)
+              messageAreas.push(messageArea);
               typing.appendChild(messageInput);
               typing.appendChild(sendButton);
               newConvo.appendChild(typing)
               contactsList.appendChild(newContact);
               chatScreen.appendChild(newConvo);
               conversations.push(newConvo);
+              //Set up the ability to vote for people
+              let newVote = document.createElement('button');
+              newVote.classList.add('player-vote');
+              newVote.innerText = data[1][player]['name'];
+              vote.appendChild(newVote);
+              newVote.onclick = ()=>{
+                conn.send(['sendVote',data[1][currentPlayer]]);
+                switchScreen(widgets,waiting);
+              }
             }
           };
+          labButton.onclick = ()=>{
+            switchBuilding("Laboratory of Bizzare Research",conn);
+          }
+          manorButton.onclick = ()=>{
+            switchBuilding("Mystic Manor",conn);
+          }
+          jewelryButton.onclick = ()=>{
+            switchBuilding("Jewelry Store",conn);
+          }
+          techButton.onclick = ()=>{
+            switchBuilding("Tech Tower",conn);
+          }
+          newsButton.onclick = ()=>{
+            switchBuilding("World News",conn);
+          }
+          funButton.onclick = ()=>{
+            switchBuilding("Abandoned Funhouse",conn);
+          }
+          groceryButton.onclick = ()=>{
+            switchBuilding("Grocery Mart",conn);
+          }
           break;
         case 'role':
           //figure out what to do with my assigned role
           me['role'] = data[1];
+          nameDisplay.innerHTML += ` - you are ${me['role']['article']} <span class='highlight'>${me['role']['name']}</span>`
           logo.style.backgroundImage = `url('${me['role']['logo']}`
           container.style.backgroundColor = me['role']['color']
           gameSpace.style.display = 'flex';
-          const roleName = document.getElementById('role-name');
-          roleName.innerText = `You are ${me['role']['article']+me['role']['name']}`
           homeButton.style.backgroundColor = me['role']['color'];
           if(me['role']['alignment'] == 'evil'){
             //make a few changes if my role is evil.
-            chatIcon.style.backgroundImage = "url('images/VillianComm.svg')";
-            chatTitle.innerText = 'VillianComm'
-            chatTitle.style.backgroundColor = "#000000"
+            chatAppIcon.style.backgroundImage = "url('images/VillianComm.svg')";
+            chatTitle.innerText = 'VillianComm';
+            chatTitle.style.backgroundColor = "#000000";
           }
+
+          //Populate the actions section
+
+          if(me['role']['actions']){
+            me['role']['actions'].forEach((action)=>{
+              const actionButton = document.createElement('button');
+              actionButton.innerText = action;
+              actionButton.onclick = ()=>{
+                conn.send(['action',[action,me,currentBuilding]]);
+                switchScreen(widgets,waiting);
+              }
+              actions.appendChild(actionButton);
+            })
+          }else{
+            let actionsTitle = document.getElementById('actions-title');
+            actionsTitle.innerText = 'There are no actions that you can perform.'
+          }
+          conn.send(['playerRole',me])
           break;
         case 'newMessage':
           //what to do when I recieve a new message
@@ -228,16 +336,75 @@ socket.on('join',info => {
             messageConversation = document.getElementById(`${data[1]['from']}-messages`);
             newMessage = document.createElement('div');
             //the new-messages class makes it a light salmon color to indicate it is unread.
-            messageContact.classList.add('new-messages')
+            messageContact.classList.add('new-messages');
+            checkUnreadMessages()
             newMessage.classList.add('message');
             newMessage.innerText=data[1]['message'];
             messageConversation.insertBefore(newMessage,messageConversation.firstChild)
           }
           break;
+        case 'day':
+          if(data[1]){
+            if(me['playerNumber'] == 1){
+              conn.send(['nightTimeEvents'])
+            }
+          }else if(!data[1]){
+            switchScreen(widgets,buildingSection);
+          }
+          break;
+        case 'playerAtBuilding':
+          let thisPlayer = data[1][0];
+          let building = data[1][1];
+          let playerDescription = document.createElement('p');
+          if(me['role']['alignment'] == 'good'){
+            let accessories = ['cape','mask','stache']
+            let accessory = accessories[Math.floor(Math.random() * accessories.length)]
+            playerDescription.innerText = `Someone ${thisPlayer[accessory]?"with a ":"without a "}${accessory == "stache"?"mustache":accessory}`;
+          }else{
+            playerDescription.innerText = thisPlayer['name'];
+          }
+          if(thisPlayer['name'] != me['name']){
+            playersAtBuildings.push([playerDescription,building]);
+          }
+          break;
+        case 'evilPlayer':
+          // console.log(me)
+          if(me['role']['alignment'] == 'evil' && me['name'] != data[1]){
+            evilContainer = document.getElementById(`${data[1]}-container`);
+            evilContainer.style.boxShadow = "4px 4px 0px black,inset 0px 0px 8px red";
+            console.log(data[1]);
+          }
+          break;
+        case 'doActions':
+          console.log(data)
+          playersAtBuildings.forEach((person)=>{
+            if(person[1] == currentBuilding){
+              const peopleSeen = document.getElementById('people-seen');
+              peopleSeen.innerText = "You see:"
+              playersNearby.appendChild(person[0]);
+            }
+          });
+          if(!me['role']['actions']){
+            conn.send(['action','none'])
+          }
+          const yourBuilding = document.getElementById('your-building');
+          yourBuilding.innerHTML = `You are at the <span class="dark-highlight">${currentBuilding}.</span>`;
+          switchScreen(widgets,actions);
+          break;
+        case 'timeToVote':
+          switchScreen(widgets,vote);
+          break;
+        case 'votesIn':
+          voteResults.innerText = data[1]?`${data[1]} was voted to go to jail!`:'Nobody was voted to go to jail today.'
+          switchScreen(widgets,voteResults);
+          setTimeout(()=>{
+            if(data[1] == me['name']){
+              switchScreen(apps,jail);
+              homeButton.style.display = "none";
+            }
+          },5000)
         default:
-          //nada means 'nothing' in spanish. It also means 'it swims.'
-          //Que hace un pez? Nada!
-          console.log('nada');
+          conn.send(data)
           break;
       }
     });
@@ -246,6 +413,7 @@ socket.on('join',info => {
   })
 })
 //When a game code is invalid, it doesn't crash because of these 3 lines!
-socket.on('codeinvalid',gameId =>{
-  invaildCode.innerHTML = `INVALID CODE: ${gameId}`
+socket.on('codeinvalid',gameCode =>{
+  invaildCode.innerHTML = `INVALID CODE: ${gameCode}`
+  gameId.value = "";
 })

@@ -8,7 +8,7 @@ const httpServer = createServer();
 const io = new Server(httpServer, {
     cors: {
         //Specifying from which urls the clients can connect to the server.
-        origin: ["http://localhost:8080","http://localhost:8081","http://10.15.30.8:8080","http://192.168.0.182:8080"]
+        origin: ["http://localhost:8080","http://localhost:8081","http://10.15.2.71:8080","http://10.15.2.71:8081","http://192.168.0.182:8081"]
     }
 })
 //The users array is used to keep track of all connected sockets, whether hosts or clients
