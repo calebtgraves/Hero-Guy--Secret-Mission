@@ -1,8 +1,12 @@
 //connect to the socket server
-const socket = io("ws://192.168.0.182:3000");
+const socket = io("ws://localhost:3000");
 
 //set up a peer to peer connection object
-let peer = new Peer();
+let peer = new Peer({
+  host: 'localhost',
+  port: 9000,
+  path: '/myapp'
+});
 peer.on('open', id =>{
   console.log(id);
 })
@@ -19,8 +23,11 @@ const container = document.getElementById('container');
 const nameDisplay = document.getElementById('name-display');
 const gameSpace = document.getElementById('game-space');
 
-let me = {}
-let playerNames = []
+let me = {};
+let playerNames = [];
+let playersInJail = [];
+let playersAtBuildings = [];
+
 joinButton.onclick = () => {
   //tell the server the client is trying to connect to a game, and send the game id and username that was typed in.
   if(username.value){
@@ -32,16 +39,18 @@ const home = document.getElementById('home');
 const chatApp = document.getElementById('chat-app');
 const jail = document.getElementById('jail');
 const homeButton = document.getElementById('home-button');
-const apps = [home,chatApp,jail];
+const apps = [home,chatApp];
 const actions = document.getElementById('actions');
 const buildingSection = document.getElementById('buildings');
 const waiting = document.getElementById('waiting');
 const vote = document.getElementById('vote');
-const voteResults = document.getElementById('vote-results');
+const finalVotes = document.getElementById('final-votes');
 const actionSection = document.getElementById('action-section');
-const widgets = [vote,voteResults,buildingSection,waiting,actions];
+const continueScreen = document.getElementById('continue-screen');
+const continueButton = document.getElementById('continue-button');
+const widgets = [vote,finalVotes,continueScreen,buildingSection,waiting,actions];
 const playersNearby = document.getElementById('players-nearby');
-let playersAtBuildings = [];
+const mainScreens = [actionSection,jail];
 
 //This function handles the switching of the phone screen, whether in an app or from an app to the home screen.
 function switchScreen(scope,target){
@@ -106,12 +115,19 @@ function checkUnreadMessages(){
     chatAppIcon.classList.remove('chat-notification');
   }
 }
+
+function toggleSendButtons(){
+  chatAppIcon.classList.toggle('messaging-available');
+  Array.from(document.getElementsByClassName('send')).forEach((sendInput)=>{
+    sendInput.classList.toggle('disabled-button');
+  })
+}
+
 homeButton.onclick = ()=>{
   switchScreen(apps,home);
   checkUnreadMessages()
   switchScreen(chatAppScreens,contacts);
 }
-
 
 const labButton = document.getElementById('lab-button');
 const manorButton = document.getElementById('manor-button');
@@ -120,6 +136,8 @@ const techButton = document.getElementById('tech-button');
 const newsButton = document.getElementById('news-button');
 const funButton = document.getElementById('fun-button');
 const groceryButton = document.getElementById('grocery-button');
+
+
 
 //what to do when the client joins a game. info is an array that contains the host's peer id and the username typed in by the user.
 socket.on('join',info => {
@@ -241,6 +259,9 @@ socket.on('join',info => {
               sendButton.classList.add('send');
               sendButton.innerText = "send";
               sendButton.onclick = ()=>{
+                if(playersInJail.includes(me['name'])){
+                  toggleSendButtons()
+                }
                 let message = document.createElement('div');
                 message.classList.add('message');
                 message.classList.add('from-me');
@@ -265,6 +286,7 @@ socket.on('join',info => {
               //Set up the ability to vote for people
               let newVote = document.createElement('button');
               newVote.classList.add('player-vote');
+              newVote.setAttribute('id',`vote-${currentPlayer}`);
               newVote.innerText = data[1][player]['name'];
               vote.appendChild(newVote);
               newVote.onclick = ()=>{
@@ -273,6 +295,15 @@ socket.on('join',info => {
               }
             }
           };
+          let voteNone = document.createElement('button');
+          voteNone.classList.add('player-vote');
+          voteNone.innerText="No one";
+          console.log(voteNone);
+          vote.appendChild(voteNone);
+              voteNone.onclick = ()=>{
+                conn.send(['sendVote','none']);
+                switchScreen(widgets,waiting);
+              }
           labButton.onclick = ()=>{
             switchBuilding("Laboratory of Bizzare Research",conn);
           }
@@ -311,20 +342,28 @@ socket.on('join',info => {
           }
 
           //Populate the actions section
-
           if(me['role']['actions']){
             me['role']['actions'].forEach((action)=>{
-              const actionButton = document.createElement('button');
-              actionButton.innerText = action;
-              actionButton.onclick = ()=>{
-                conn.send(['action',[action,me,currentBuilding]]);
-                switchScreen(widgets,waiting);
+              if(action != 'Capture'){
+                const actionButton = document.createElement('button');
+                actionButton.innerText = action;
+                actionButton.onclick = ()=>{
+                  conn.send(['action',[action,me,currentBuilding]]);
+                  switchScreen(widgets,waiting);
+                }
+                actions.appendChild(actionButton);
               }
-              actions.appendChild(actionButton);
             })
           }else{
             let actionsTitle = document.getElementById('actions-title');
             actionsTitle.innerText = 'There are no actions that you can perform.'
+            const readyButton = document.createElement('button');
+            readyButton.innerText = "I'm Ready!"
+            readyButton.onclick = ()=>{
+              conn.send(['action','none']);
+              switchScreen(widgets,waiting);
+            }
+            actions.appendChild(readyButton);
           }
           conn.send(['playerRole',me])
           break;
@@ -345,10 +384,15 @@ socket.on('join',info => {
           break;
         case 'day':
           if(data[1]){
+            if(playersInJail.includes(me['name'])){
+              toggleSendButtons();
+            }
+            switchScreen(widgets,waiting);
             if(me['playerNumber'] == 1){
-              conn.send(['nightTimeEvents'])
+              conn.send(['nightTimeEvents']);
             }
           }else if(!data[1]){
+            playersAtBuildings = [];
             switchScreen(widgets,buildingSection);
           }
           break;
@@ -376,33 +420,121 @@ socket.on('join',info => {
           }
           break;
         case 'doActions':
+          console.log(actions.childNodes)
+          Array.from(actions.childNodes).forEach((button)=>{
+            console.log(button.tagName)
+            if(button.tagName == 'BUTTON'){
+              console.log(button);
+              if(button.innerText.includes('Capture')){
+                actions.removeChild(button);
+              }
+            }
+          })
           console.log(data)
+          playersNearby.innerText = '';
           playersAtBuildings.forEach((person)=>{
+          const peopleSeen = document.getElementById('people-seen');
+          peopleSeen.innerText = "You don't see anyone else."
             if(person[1] == currentBuilding){
-              const peopleSeen = document.getElementById('people-seen');
               peopleSeen.innerText = "You see:"
               playersNearby.appendChild(person[0]);
+              if(me['role']['actions']){
+                if(me['role']['actions'].includes('Capture')){
+                  captureButton = document.createElement('button');
+                  console.log(person)
+                  captureTitle = 'Capture ' + person[0].innerText
+                  captureButton.innerText = captureTitle;
+                  captureButton.onclick = ()=>{
+                    conn.send(['action',[captureTitle,me,currentBuilding]]);
+                    switchScreen(widgets,waiting);
+                  }
+                  title = document.getElementById('actions-title');
+                  if(title.nextSibling){
+                    actions.insertBefore(captureButton,title.nextSibling);
+                  }else{
+                    actions.appendChild(captureButton);
+                  }
+                }
+              }
             }
           });
-          if(!me['role']['actions']){
-            conn.send(['action','none'])
-          }
           const yourBuilding = document.getElementById('your-building');
           yourBuilding.innerHTML = `You are at the <span class="dark-highlight">${currentBuilding}.</span>`;
           switchScreen(widgets,actions);
           break;
+        case 'captured':
+          playersInJail.push(data[1])
+          if (playersInJail.includes(me['name'])) {
+            chatAppIcon.classList.add('messaging-available');
+            switchScreen(mainScreens,jail);
+          }
+          break;
         case 'timeToVote':
+          playerNames.forEach((playerName)=>{
+            thisVoteButton = document.getElementById(`vote-${playerName}`);
+            thisVoteButton.style.display = 'inline-block';
+            if(playersInJail.includes(playerName)){
+              thisVoteButton.style.display = "none";
+            }
+          })
           switchScreen(widgets,vote);
           break;
         case 'votesIn':
-          voteResults.innerText = data[1]?`${data[1]} was voted to go to jail!`:'Nobody was voted to go to jail today.'
-          switchScreen(widgets,voteResults);
-          setTimeout(()=>{
-            if(data[1] == me['name']){
-              switchScreen(apps,jail);
-              homeButton.style.display = "none";
+          if(data[1]){
+            if(finalVotes.firstChild.tagName == 'P'){
+              finalVotes.removeChild(finalVotes.firstChild);
             }
-          },5000)
+            const guilty = document.getElementById('guilty');
+            const notGuilty = document.getElementById('not-guilty');
+            let voted = document.createElement('p');
+            voted.innerText = `${data[1]} was voted to go to jail! What do you think?`;
+            if(data[1] == me['name']){
+              guilty.style.display = 'none';
+              notGuilty.style.display = 'none';
+              voted.innerText = 'You were voted to be put in jail. Can you convince the others of your innocence?';
+            }
+            guilty.onclick = ()=>{
+              conn.send(['guilty',[data[1],true]]);
+              switchScreen(widgets,waiting);
+            }
+            notGuilty.onclick = ()=>{
+              conn.send(['guilty',[data[1],false]]);
+              switchScreen(widgets,waiting);
+            }
+            finalVotes.appendChild(voted);
+            switchScreen(widgets,finalVotes);
+          }
+          break;
+        case 'finalVotesIn':
+          playersInJail.push(data[1]);
+          switchScreen(widgets,waiting);
+          break;
+        case 'playersReady':
+          if(me['playerNumber'] == 1){
+            conn.send(['nextDay',data[1]]);
+          }
+          break;
+        case 'winningTeam':
+          let victory
+          if(data[1] == 'good'){
+            victory = document.getElementById('good-victory');
+          }else{
+            victory = document.getElementById('evil-victory')
+          }
+          document.getElementById('total').style.display = 'none';
+          victory.style.display = 'flex';
+          break;
+        case 'continue':
+          if (playersInJail.includes(me['name'])) {
+            chatAppIcon.classList.add('messaging-available');
+            switchScreen(mainScreens,jail);
+          }
+          continueButton.onclick = ()=>{
+            switchScreen(widgets,waiting);
+            conn.send(['continue']);
+          }
+          switchScreen(widgets,continueScreen)
+          break;
         default:
           conn.send(data)
           break;

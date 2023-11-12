@@ -9,12 +9,7 @@ const currentEvents = document.getElementById('current-events');
 const background = document.getElementById('background');
 const events = document.getElementById('events');
 
-function createNewEvent(text){
-    let newEvent = document.createElement('div');
-    newEvent.innerText = text;
-    currentEvents.appendChild(newEvent);
-};
-
+const devMode = false;
 //This is used to keep track of the users connected to a specific game
 let playerNumber = 1
 let players = {}
@@ -60,18 +55,51 @@ let buildings = {
     }
 }
 
+let evilPlayers = [];
+let goodPlayers = [];
 let currentDay = 0;
+let captureAtBuilding = '';
 let playersAtBuildings = 0;
 let performedActions = 0;
 let playerVotes = 0;
-let playersInJail = 0;
+let playersReady = 0;
+let playersInJail = [];
+let guiltyVotes = 0;
+let notGuiltyVotes = 0;
 let votedPlayers = {}
 let currentEvent = "";
 let buildingRaided = "";
 let playerCaptured = "";
+let winners = ''
+
+function checkIfTeamWon(){
+    let goodInJail = [];
+    let evilInJail = [];
+    playersInJail.forEach((inmate)=>{
+        if(evilPlayers.includes(inmate)){
+            evilInJail.push(inmate);
+        }else{
+            goodInJail.push(inmate);
+        }
+    });
+    if(goodInJail.sort().toString() == goodPlayers.sort().toString()){
+        winners = 'evil';
+        return true
+    }else if(evilInJail.sort().toString() == evilPlayers.sort().toString()){
+        winners = 'good';
+        return true
+    }
+    return false
+}
 
 function fillOutElement(text, element, event) {
     currentEvent = event
+    if(devMode){
+        element.innerText = text;
+        connected[0].send(['event',event]);
+        element.scrollTop = element.scrollHeight
+        return;
+    }
     setTimeout(()=>{
         element.innerHTML = "";
         let index = 0;
@@ -97,6 +125,7 @@ function fillOutElement(text, element, event) {
             }else{
                 connected[0].send(['event',event])
             }
+            element.scrollTop = element.scrollHeight
         }
         if (currentEvent == event){
             addCharacter();
@@ -117,14 +146,15 @@ let roles = {
         'name':'Hero Guy',
         'article':'',
         'alignment':'good',
-        'actions':['Protect the Building']
+        'actions':['Protect the Building','Do Nothing']
     },
     'Nemesis':{
         'logo':"images/NemesisWhite.svg",
         'color':'#000000',
         'name':'Nemesis',
         'article':'',
-        'alignment':'evil'
+        'alignment':'evil',
+        'actions':['Capture','Do Nothing']
     },
     'Police Officer':{
         'logo':"images/PoliceWhite.svg",
@@ -144,14 +174,16 @@ let roles = {
 let connected = []
 //When the host has the game id from the server, it displays it on the screen.
 socket.on('gameid',(id) =>{
-    console.log(id);
     gameId.innerHTML = `Game ID:<br/> ${id}`
 })
 
 //set up a peer to peer connection object, allowing connections from other peers.
-let peer = new Peer();
+let peer = new Peer({
+    host: 'localhost',
+    port: 9000,
+    path: '/myapp'
+  });
 peer.on('open',(peerId)=>{
-    console.log(peerId)
     //Tell the server that it is ready to accept clients
     socket.emit('host',[socket.id,peerId])
 })
@@ -161,6 +193,7 @@ function sendToAll(data){
     connected.forEach((conn)=>{
         conn.send(data)
     })
+    return ''
 }
 //this function figures out which roles need to be used based on the amount of players in the game.
 function getRoles(){
@@ -198,13 +231,10 @@ function sendRoles(){
     })
 }
 
-let sent = false
-
 //Make the time switch from day to night
 function switchTime(){
     day = !day;
-    sent = !sent;
-    sendToAll(['day', day])
+    sendToAll(['day', day]);
     if(day){
         background.style.backgroundColor = 'white';
         const map = document.getElementById('map');
@@ -223,8 +253,6 @@ function switchTime(){
 //When a client connects to the host:
 peer.on('connection',conn =>{
     connected.push(conn)
-    console.log(conn)
-    console.log(peer.connections)
     //What to do when data is recieved. Data is an array that contains the type of data, and then the data that it is sending.
     conn.on('data',(data)=>{
         //The switch statement figures out how to use the data sent based on what kind of data is specified at index 0 of the data array
@@ -233,7 +261,6 @@ peer.on('connection',conn =>{
                 //what to do when a username is recieved
                 let username = data[1]
                 username = username.toUpperCase()
-                console.log(username in players)
                 //make sure there are no duplicate usernames, add a number if there are so that all usernames are unique.
                 if(username in players){
                     if (username in duplicates){
@@ -293,7 +320,6 @@ peer.on('connection',conn =>{
                 break;
             case 'start':
                 //what to do when the game is started.
-                console.log('game started');
                 const lobby = document.getElementById('lobby');
                 lobby.style.display = "none";
                 const game = document.getElementById('game')
@@ -301,11 +327,30 @@ peer.on('connection',conn =>{
                 sendToAll(['start',players]);
                 switchTime()
                 fillOutElement(
-                    `Welcome to Hero Guy: Secret Mission! Each of you has been given a role, and each role has different actions that can be done.
+                    `Welcome to Hero Guy: Secret Mission! Each of you has been given a role, and each role has different actions that they can perform.
                     The goal for the heroes is to send all of the villians to Jail, Especially their leader, Nemesis.
                     Nemesis and his minions have the goal to either capture all the heroes or steal all 5 of the devices from among the buildings on the map. For all players who are villians, the other players on your team are marked with red at the bottom of your screen.
-                    On your screen, you'll see your role, your hero phone, and a list of all other players. Your hero phone is how you play the game. To start out, please choose which building you will inspect tonight!`
+                    On your screen, you'll see your role, your hero phone, which is used to play the game, and a list of all other players. On your hero phone, you'll see a chat app which can be used to communicate secretly with other players.
+                    To start playing, go ahead and choose which building you will inspect tonight!`
                     ,events,'welcome');
+                break;
+            case 'nextDay':
+                currentDay += 1;
+                playersAtBuildings = 0;
+                performedActions = 0;
+                playerVotes = 0;
+                playersReady = 0;
+                guiltyVotes = 0;
+                notGuiltyVotes = 0;
+                votedPlayers = {};
+                buildingRaided = "";
+                playerCaptured = "";
+                captureAtBuilding = '';
+                console.log("Hey hey hey! It's a new day!")
+                switchTime();
+                fillOutElement(
+                    `Okay, heroes, it's night once again! Choose another building!`
+                    ,events,`night ${currentDay}`);
                 break;
             case 'nightTimeEvents':
                 playersAtBuildings = 0;
@@ -314,7 +359,13 @@ peer.on('connection',conn =>{
                 if(!playerCaptured && !buildingRaided){
                     nightEvents += ` was quiet. Absolutely nothing happened.`
                 }else if(playerCaptured){
-                    nightEvents += `, ${playerCaptured} was captured by Nemesis.`
+                    nightEvents += `, ${playerCaptured} was captured by Nemesis`
+                    playersInJail.push(playerCaptured);
+                    if(checkIfTeamWon()){
+                        nightEvents += ', and with that, the villians have captured all of the heroes!'
+                    }else{
+                        nightEvents += '!'
+                    }
                 }else if(buildingRaided){
                     nightEvents += `, ${buildingRaided} was raided by Nemesis`
                     if(buildings[buildingRaided]['protected']){
@@ -329,31 +380,30 @@ peer.on('connection',conn =>{
                 }
                 fillOutElement(
                     `Good Morning Heroes!
-                    Last night${nightEvents}
-                    Looks like it's time to vote on players to be sent to jail!
-                    Remember, you can only choose one player, so choose wisely. If any player is voted more than the others, every other player votes guilty/innocent to determine if they go to jail`,
+                    Last night${nightEvents}${!checkIfTeamWon()?"\nNow it's time to vote on players to be sent to jail!":''}
+                    ${currentDay==0?'Remember, you can only choose one player, so choose wisely. If any player is voted more than the others, every other player will vote guilty/not guilty to determine if they will go to jail.':''}`,
                     events, `morning ${currentDay}`
                 )
                 break;
             case 'changeBuilding':
                 let building = data[1][0];
                 let player = data[1][1];
-                console.log(playersAtBuildings,playerNumber);
                 buildings[building]['players'].push(player);
                 playersAtBuildings += 1;
                 sendToAll(['playerAtBuilding',[player,building,buildings[building]['players']]]);
-                if(playersAtBuildings == playerNumber-1-playersInJail){
+                if(playersAtBuildings == playerNumber-1-playersInJail.length){
                     sendToAll(['doActions']);
                     if(currentDay == 0){
                         fillOutElement(
                             `All of you have now chosen a building. You may notice that other people also went to the same building as you. If anybody else is there, a hero will learn one thing about their apperance, and a villian will learn their identity. You may also see that there are no other players there.
-                            Most roles have some kind of action or actions that they can do at night. If yours can, you will see buttons on your screen with your action options. Some are specific to the building you are at, some may be specific to nearby players.
+                            Many roles have some kind of action or actions that they can do at night. If yours can, you will see buttons on your screen with your action options.
+                            If you don't have any actions, make sure to take note of anything you've learned about other people there, and press "I'm Ready" when you are ready to move on!
                             If your role has any actions available, go ahead and try one!`
-                            ,events,'first building');
+                            ,events,'firstActions');
                     }else{
                         fillOutElement(
-                            `All players have selected a building. Now perform your actions!`,
-                            events, `actions-day ${currentDay}`
+                            `All players have selected a building. Now perform your actions or indicate that you're ready to move on!`,
+                            events, `actionsDay ${currentDay}`
                         );
                     }
                 }
@@ -361,9 +411,19 @@ peer.on('connection',conn =>{
             case 'action':
                 if(data[1][0] == 'Protect the Building'){
                     buildings[data[1][2]]['protected'] = true;
+                }else if(data[1][0].includes('Capture')){
+                    playerCaptured = data[1][0].split(" ")[1];
+                    captureAtBuilding = data[1][2];
                 }
                 performedActions += 1;
-                if(performedActions == playerNumber-1-playersInJail){
+                console.log(captureAtBuilding);
+                if(performedActions == playerNumber-1-playersInJail.length){
+                    if(captureAtBuilding){
+                        console.log(buildings[captureAtBuilding])
+                        if(buildings[captureAtBuilding]['protected']){
+                            playerCaptured = ''
+                        }
+                    }
                     switchTime()
                 }
                 break;
@@ -379,6 +439,9 @@ peer.on('connection',conn =>{
                 players[thisPlayer['name']]['role'] = thisPlayer['role'];
                 if (thisPlayer['role']['alignment'] == 'evil'){
                     sendToAll(['evilPlayer',thisPlayer['name']])
+                    evilPlayers.push(thisPlayer['name'])
+                }else{
+                    goodPlayers.push(thisPlayer['name'])
                 }
                 break;
             case 'event':
@@ -386,14 +449,37 @@ peer.on('connection',conn =>{
                 if(eventInfo[0] == "morning"){
                     playerVotes = 0
                     votedPlayers = {}
-                    sendToAll(['timeToVote']);
+                    if(checkIfTeamWon()){
+                        sendToAll(['winningTeam',winners])
+                    }else{
+                        sendToAll(['captured',playerCaptured])
+                        sendToAll(['timeToVote']);
+                    }
+                }else if(eventInfo[0] == 'finalVoting'){
+                    if(checkIfTeamWon()){
+                        sendToAll(['winningTeam',winners])
+                        fillOutElement(`Congradulations! The ${winners=='good'?'heroes have defeated the villians!':'villians have captured the heroes!'}`,
+                        events,'gameOver')
+                    }else{
+                        sendToAll(['continue']);
+                    }
+                }
+                break;
+            case 'continue':
+                playersReady += 1;
+                console.log(playersReady);
+                if(playersReady == playerNumber-1-playersInJail.length){
+                    sendToAll(['playersReady'])
                 }
                 break;
             case 'sendVote':
-                let chosenPlayer=data[1]['name'];
-                votedPlayers[chosenPlayer] = votedPlayers[chosenPlayer]?votedPlayers[chosenPlayer]+1:1;
+                console.log(data[1]);
+                if(data[1] != 'none'){
+                    let chosenPlayer=data[1]['name'];
+                    votedPlayers[chosenPlayer] = votedPlayers[chosenPlayer]?votedPlayers[chosenPlayer]+1:1;
+                }
                 playerVotes += 1;
-                if (playerVotes == playerNumber-1-playersInJail){
+                if (playerVotes == playerNumber-1-playersInJail.length){
                     let max = [0,'']
                     for(var person in votedPlayers){
                         if (votedPlayers[person] > max[0]){
@@ -405,15 +491,55 @@ peer.on('connection',conn =>{
                         }
                     }
                     if(max[1] != ''){
-                        playersInJail += 1
+                        sendToAll(['votesIn',max[1]]);
+                        fillOutElement(
+                            `Alright! The votes are in! ${max[1]} is on trial! It's time to decide if you think ${max[1]} is guilty or not!`,
+                            events, `voting ${currentDay}`
+                        );
+                    }else{
+                        sendToAll(['finalVotesIn','']);
+                        fillOutElement(
+                            `Looks like no one will be on trial today!
+                            All players not in jail must press continue before proceeding.`,
+                            events, `finalVoting ${currentDay}`
+                        );
                     }
-                    sendToAll(['votesIn',max[1]])
                 }
+                break;
+            case 'guilty':
+                //data[1] is a list with the name of the player, and either true(for guilty) or false(for not guilty)
+                if(data[1][1]){
+                    guiltyVotes += 1;
+                }else{
+                    notGuiltyVotes += 1;
+                }
+                if((guiltyVotes+notGuiltyVotes) == playerNumber-2-playersInJail.length){
+                    if(guiltyVotes>notGuiltyVotes){
+                        playersInJail.push(data[1][0]);
+                    }
+                    let sentenced = guiltyVotes>notGuiltyVotes?data[1][0]:'';
+                    if(sentenced){
+                        fillOutElement(
+                            `Well, it looks like ${sentenced} has been found guilty of being a villian by The Council of Heroes!
+                            ${sentenced}, we hereby sentence you to jail!
+                            It's important to keep in mind, players in jail can still send messages to other players, but they are only able to send one message per day. Use that message wisely!
+                            All players not in jail must press continue before proceeding.`,
+                            events, `finalVoting ${currentDay}`
+                        );
+                        sendToAll(['finalVotesIn',sentenced]);
+                    }else{
+                        fillOutElement(
+                            `${data[1][0]}, you have been found not guilty by The Council of Heroes!
+                            All players not in jail must press continue before proceeding.`,
+                            events,`finalVoting ${currentDay}`
+                        );
+                    }
+                }
+                break;
             default:
                 //nada means 'nothing' in spanish. It also means 'it swims.'
                 //Que hace un pez? Nada!
                 console.log(data);
-                console.log('nada');
                 break;
         }
     });

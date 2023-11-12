@@ -10,6 +10,14 @@
 </head>
 
 <body>
+  <div id="good-victory">
+    <div class="end-logo"></div>
+    The Heroes have won!
+  </div>
+  <div id="evil-victory">
+    <div class="end-logo"></div>
+    The Villians have won!
+  </div>
   <div id="total">
     <div id="container">
       <div id="logo"><p id="name-display"></p></div>
@@ -32,10 +40,10 @@
     </div>
     <div id = "game-space">
       <div id="hero-phone">
-        <div id="jail">
-          <p>You are in jail. You can not do anything while in jail.</p>
-        </div>
         <div id="home">
+          <div id="jail">
+            <p>You are in jail. In jail, you still have the ability to send messages. However, you may only send one message per day, so use that one message wisely. <br/><br/>Don't leave the game, you might be able to get out of jail!</p>
+          </div>
           <div id="action-section">
             <div id="buildings">
               <p>Go to:</p>
@@ -46,6 +54,10 @@
               <button id="news-button">The World News</button>
               <button id="fun-button">Abandoned Funhouse</button>
               <button id="grocery-button">Grocery Mart</button>
+            </div>
+            <div id="continue-screen">
+              <p>Press continue when you are ready.</p>
+              <button id="continue-button">Continue</button>
             </div>
             <div id="waiting">
               <p>Waiting... Keep an eye on the main screen!</p>
@@ -58,8 +70,13 @@
               </div>
               <p id="actions-title">Actions:</p>
             </div>
-            <div id="vote"></div>
-            <div id="vote-results"></div>
+            <div id="vote">
+              <p>Vote For:</p>
+            </div>
+            <div id="final-votes">
+              <button id="not-guilty">Not Guilty</button>
+              <button id="guilty">Guilty</button>
+            </div>
           </div>
           <p id="apps-title">Apps:</p>
           <div id = "apps">

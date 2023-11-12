@@ -141,4 +141,7 @@ html, body{
   width:100%;
   max-width:550px;
   height:90%;
+  overflow:hidden;
+  /* overflow-y:auto;
+  overflow-x:hidden; */
 }
